@@ -20,57 +20,55 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-public class SecurityConfig
-{
-	private final UserDetailsService userDetailsService;
-	private final JwtFilter jwtFilter;
+public class SecurityConfig {
+  private final UserDetailsService userDetailsService;
+  private final JwtFilter jwtFilter;
 
-	public SecurityConfig (UserDetailsServiceAuth userDetailsService, JwtFilter jwtFilter)
-	{
-		this.userDetailsService = userDetailsService;
-		this.jwtFilter = jwtFilter;
-	}
+  public SecurityConfig(UserDetailsServiceAuth userDetailsService, JwtFilter jwtFilter) {
+    this.userDetailsService = userDetailsService;
+    this.jwtFilter = jwtFilter;
+  }
 
-	@Bean
-	public AuthenticationProvider authenticationProvider()
-	{
-		DaoAuthenticationProvider daoAuthenticationProvider =
-						new DaoAuthenticationProvider(userDetailsService);
-		daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
+  @Bean
+  public AuthenticationProvider authenticationProvider() {
+    DaoAuthenticationProvider daoAuthenticationProvider =
+        new DaoAuthenticationProvider(userDetailsService);
+    daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
 
-		return daoAuthenticationProvider;
-	}
+    return daoAuthenticationProvider;
+  }
 
-	@Bean
-	public SecurityFilterChain securityFilterChain (HttpSecurity httpSecurity) throws Exception
-	{
-		return httpSecurity
-						.csrf(AbstractHttpConfigurer::disable)
-						.httpBasic(AbstractHttpConfigurer::disable)
-						.formLogin(AbstractHttpConfigurer::disable)
-						.sessionManagement(httpSecuritySessionManagementConfigurer -> {
-							httpSecuritySessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-						})
-						.authorizeHttpRequests(authorizationManagerRequestMatcherRegistry -> {
-							authorizationManagerRequestMatcherRegistry
-											.requestMatchers("/auth/login", "/auth/register")
-											.permitAll()
-											.anyRequest()
-											.authenticated();
-						})
-						.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-						.build();
-	}
+  @Bean
+  public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+    return httpSecurity
+        .csrf(AbstractHttpConfigurer::disable)
+        .httpBasic(AbstractHttpConfigurer::disable)
+        .formLogin(AbstractHttpConfigurer::disable)
+        .sessionManagement(
+            httpSecuritySessionManagementConfigurer -> {
+              httpSecuritySessionManagementConfigurer.sessionCreationPolicy(
+                  SessionCreationPolicy.STATELESS);
+            })
+        .authorizeHttpRequests(
+            authorizationManagerRequestMatcherRegistry -> {
+              authorizationManagerRequestMatcherRegistry
+                  .requestMatchers("/auth/login", "/auth/register")
+                  .permitAll()
+                  .anyRequest()
+                  .authenticated();
+            })
+        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+        .build();
+  }
 
-	@Bean
-	public AuthenticationManager authenticationManager (AuthenticationConfiguration configuration) throws Exception
-	{
-		return configuration.getAuthenticationManager();
-	}
+  @Bean
+  public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration)
+      throws Exception {
+    return configuration.getAuthenticationManager();
+  }
 
-	@Bean
-	public PasswordEncoder passwordEncoder ()
-	{
-		return new BCryptPasswordEncoder(12);
-	}
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder(12);
+  }
 }
