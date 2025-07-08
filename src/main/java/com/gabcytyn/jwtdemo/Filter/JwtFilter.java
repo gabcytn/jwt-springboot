@@ -4,9 +4,15 @@ import com.gabcytyn.jwtdemo.Service.JwtService;
 import com.gabcytyn.jwtdemo.Service.UserDetailsServiceAuth;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -68,6 +74,58 @@ public class JwtFilter extends OncePerRequestFilter {
 
     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
     SecurityContextHolder.getContext().setAuthentication(authToken);
+    // set refresh token if missing
+    if (!hasRefreshToken(request)) {
+      Cookie cookie = new Cookie("X-REFRESH-TOKEN", generateRefreshToken());
+      cookie.setHttpOnly(true);
+      cookie.setPath("/");
+      cookie.setMaxAge(3600);
+      response.addCookie(cookie);
+    }
     filterChain.doFilter(request, response);
+  }
+
+  private boolean hasRefreshToken(HttpServletRequest request) {
+    Cookie[] requestCookies = request.getCookies();
+    boolean hasToken = false;
+    if (requestCookies != null) {
+      for (Cookie requestCookie : requestCookies) {
+        String cookieName = requestCookie.getName();
+        String cookieValue = requestCookie.getValue();
+        System.out.println("Name: " + cookieName);
+        System.out.println("Value: " + cookieValue);
+        if ("X-REFRESH-TOKEN".equals(cookieName)) hasToken = true;
+      }
+    }
+    return hasToken;
+  }
+
+  private String generateRefreshToken() {
+    String randomString = generateRandomString();
+    return hashString(randomString);
+  }
+
+  private String hashString(String text) {
+    try {
+      MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+      byte[] hash = messageDigest.digest(text.getBytes(StandardCharsets.UTF_8));
+      return Base64.getEncoder().encodeToString(hash);
+    } catch (NoSuchAlgorithmException exception) {
+      System.err.println("Error generating refresh token");
+      System.err.println(exception.getMessage());
+      return "";
+    }
+  }
+
+  private String generateRandomString() {
+    byte[] byteArray = new byte[32];
+    SecureRandom secureRandom = new SecureRandom();
+    secureRandom.nextBytes(byteArray);
+    StringBuilder sb = new StringBuilder();
+    for (byte b : byteArray) {
+      sb.append(String.format("%02x", b));
+    }
+
+    return sb.toString();
   }
 }
