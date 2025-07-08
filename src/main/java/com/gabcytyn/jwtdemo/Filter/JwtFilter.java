@@ -44,7 +44,6 @@ public class JwtFilter extends OncePerRequestFilter {
       return;
     }
 
-    //		try {
     final String token = authorizationHeader.substring(7);
     final String userEmail = jwtService.extractUsername(token);
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -70,10 +69,5 @@ public class JwtFilter extends OncePerRequestFilter {
     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
     SecurityContextHolder.getContext().setAuthentication(authToken);
     filterChain.doFilter(request, response);
-    //		} catch (Exception e) {
-    //			System.err.println("In catch of JWT Filter");
-    //			System.err.println(e.getMessage());
-    //			handlerExceptionResolver.resolveException(request, response, null, e);
-    //		}
   }
 }
