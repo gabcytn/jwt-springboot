@@ -1,7 +1,7 @@
 package com.gabcytyn.jwtdemo.Service;
 
 import com.gabcytyn.jwtdemo.DTO.CacheData;
-import com.gabcytyn.jwtdemo.Repository.UserDetailsCacheRepository;
+import com.gabcytyn.jwtdemo.Repository.RedisCacheRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class JwtService {
-  private final UserDetailsCacheRepository userDetailsCacheRepository;
+  private final RedisCacheRepository redisCacheRepository;
 
   @Value("${security.jwt.secret-key}")
   private String secretKey;
@@ -33,8 +33,8 @@ public class JwtService {
   @Value("${security.jwt.expiration-time}")
   private long jwtExpiration;
 
-  public JwtService(UserDetailsCacheRepository userDetailsCacheRepository) {
-    this.userDetailsCacheRepository = userDetailsCacheRepository;
+  public JwtService(RedisCacheRepository redisCacheRepository) {
+    this.redisCacheRepository = redisCacheRepository;
   }
 
   public String extractUsername(String token) {
@@ -125,7 +125,7 @@ public class JwtService {
   }
 
   private void saveRefreshTokenInCache(String sessionId, String token) {
-    userDetailsCacheRepository.save(new CacheData(sessionId + "-refresh-token", token));
+    redisCacheRepository.save(new CacheData(sessionId + "-refresh-token", token));
     System.out.println("Saving refresh token in cache");
   }
 }

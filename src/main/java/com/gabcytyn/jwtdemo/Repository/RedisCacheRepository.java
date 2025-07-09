@@ -5,4 +5,4 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface UserDetailsCacheRepository extends CrudRepository<CacheData, String> {}
+public interface RedisCacheRepository extends CrudRepository<CacheData, String> {}

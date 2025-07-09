@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gabcytyn.jwtdemo.DTO.*;
 import com.gabcytyn.jwtdemo.Entity.User;
-import com.gabcytyn.jwtdemo.Repository.UserDetailsCacheRepository;
+import com.gabcytyn.jwtdemo.Repository.RedisCacheRepository;
 import com.gabcytyn.jwtdemo.Repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,7 +22,7 @@ public class AuthenticationService {
   private final PasswordEncoder passwordEncoder;
   private final AuthenticationManager authenticationManager;
   private final JwtService jwtService;
-  private final UserDetailsCacheRepository userDetailsCacheRepository;
+  private final RedisCacheRepository redisCacheRepository;
   private final ObjectMapper objectMapper;
   private final Long oneWeek = 60L * 60 * 24 * 7;
 
@@ -31,13 +31,13 @@ public class AuthenticationService {
       PasswordEncoder passwordEncoder,
       AuthenticationManager authenticationManager,
       JwtService jwtService,
-      UserDetailsCacheRepository userDetailsCacheRepository,
+      RedisCacheRepository redisCacheRepository,
       ObjectMapper objectMapper) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.authenticationManager = authenticationManager;
     this.jwtService = jwtService;
-    this.userDetailsCacheRepository = userDetailsCacheRepository;
+    this.redisCacheRepository = redisCacheRepository;
     this.objectMapper = objectMapper;
   }
 
@@ -67,17 +67,17 @@ public class AuthenticationService {
     if (authentication.isAuthenticated()) {
       String token = jwtService.generateToken(user.getEmail());
       Optional<CacheData> cacheData =
-          userDetailsCacheRepository.findById(request.getSession().getId() + "-refresh-token");
+          redisCacheRepository.findById(request.getSession().getId() + "-refresh-token");
       if (cacheData.isPresent()) {
         String refreshToken = cacheData.get().getValue();
         RefreshTokenValidatorDto tokenValidatorDto =
             new RefreshTokenValidatorDto(user.getEmail(), user.getDeviceName());
         String tokenValidatorAsString = objectMapper.writeValueAsString(tokenValidatorDto);
-        userDetailsCacheRepository.save(
+        redisCacheRepository.save(
             new CacheData(refreshToken, tokenValidatorAsString, oneWeek)); // 1 week
         System.out.println("Refresh token: " + refreshToken);
         // delete old cache
-        userDetailsCacheRepository.deleteById(request.getSession().getId() + "-refresh-token");
+        redisCacheRepository.deleteById(request.getSession().getId() + "-refresh-token");
       } else {
         throw new Exception("No refresh token found");
       }
@@ -93,7 +93,7 @@ public class AuthenticationService {
     try {
       Cookie refreshTokenCookie = findRefreshTokenCookie(request.getCookies());
       Optional<CacheData> cacheData =
-          userDetailsCacheRepository.findById(refreshTokenCookie.getValue());
+          redisCacheRepository.findById(refreshTokenCookie.getValue());
       if (cacheData.isEmpty()) throw new Exception("Refresh token is invalid.");
 
       String tokenValidatorAsString = cacheData.get().getValue();
@@ -105,15 +105,15 @@ public class AuthenticationService {
       String jwt = jwtService.generateToken(tokenValidatorDto.email());
 
       // delete old refresh token
-      userDetailsCacheRepository.deleteById(refreshTokenCookie.getValue());
+      redisCacheRepository.deleteById(refreshTokenCookie.getValue());
       // saved in cache with key of current session id
       jwtService.generateRefreshToken(request, response);
       // rename cache key from session id to new refresh token
       Optional<CacheData> newCacheData =
-          userDetailsCacheRepository.findById(request.getSession().getId() + "-refresh-token");
+          redisCacheRepository.findById(request.getSession().getId() + "-refresh-token");
       if (newCacheData.isEmpty()) throw new Exception("New refresh token not found");
       String newRefreshToken = newCacheData.get().getValue();
-      userDetailsCacheRepository.save(new CacheData(newRefreshToken, tokenValidatorAsString, oneWeek));
+      redisCacheRepository.save(new CacheData(newRefreshToken, tokenValidatorAsString, oneWeek));
 
       return new LoginResponseDto(jwt, jwtService.getExpirationTime());
     } catch (Exception e) {

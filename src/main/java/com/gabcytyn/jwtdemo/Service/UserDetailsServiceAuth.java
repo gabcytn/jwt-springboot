@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gabcytyn.jwtdemo.DTO.CacheData;
 import com.gabcytyn.jwtdemo.DTO.UserPrincipal;
 import com.gabcytyn.jwtdemo.Entity.User;
-import com.gabcytyn.jwtdemo.Repository.UserDetailsCacheRepository;
+import com.gabcytyn.jwtdemo.Repository.RedisCacheRepository;
 import com.gabcytyn.jwtdemo.Repository.UserRepository;
 import java.util.Optional;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,21 +17,21 @@ import org.springframework.stereotype.Service;
 @Service
 public class UserDetailsServiceAuth implements UserDetailsService {
   private final UserRepository userRepository;
-  private final UserDetailsCacheRepository userDetailsCacheRepository;
+  private final RedisCacheRepository redisCacheRepository;
   private final ObjectMapper objectMapper;
 
   public UserDetailsServiceAuth(
       UserRepository userRepository,
-      UserDetailsCacheRepository userDetailsCacheRepository,
+      RedisCacheRepository redisCacheRepository,
       ObjectMapper objectMapper) {
     this.userRepository = userRepository;
-    this.userDetailsCacheRepository = userDetailsCacheRepository;
+    this.redisCacheRepository = redisCacheRepository;
     this.objectMapper = objectMapper;
   }
 
   @Override
   public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-    Optional<CacheData> cacheData = userDetailsCacheRepository.findById(email);
+    Optional<CacheData> cacheData = redisCacheRepository.findById(email);
     if (cacheData.isPresent()) {
       System.out.println("Cache hit!");
       TypeReference<User> mapType = new TypeReference<>() {};
@@ -49,7 +49,7 @@ public class UserDetailsServiceAuth implements UserDetailsService {
     if (user.isPresent()) {
       User presentUser = user.get();
       try {
-        userDetailsCacheRepository.save(
+        redisCacheRepository.save(
             new CacheData(
                 presentUser.getEmail(), objectMapper.writeValueAsString(presentUser), -1L)); // cache forever
         return new UserPrincipal(presentUser);
