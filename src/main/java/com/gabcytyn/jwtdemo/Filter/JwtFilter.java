@@ -1,5 +1,7 @@
 package com.gabcytyn.jwtdemo.Filter;
 
+import com.gabcytyn.jwtdemo.DTO.CacheData;
+import com.gabcytyn.jwtdemo.Repository.UserDetailsCacheRepository;
 import com.gabcytyn.jwtdemo.Service.JwtService;
 import com.gabcytyn.jwtdemo.Service.UserDetailsServiceAuth;
 import jakarta.servlet.FilterChain;
@@ -28,14 +30,16 @@ public class JwtFilter extends OncePerRequestFilter {
   private final HandlerExceptionResolver handlerExceptionResolver;
   private final JwtService jwtService;
   private final UserDetailsService userDetailsService;
+  private final UserDetailsCacheRepository userDetailsCacheRepository;
 
   public JwtFilter(
       HandlerExceptionResolver handlerExceptionResolver,
       JwtService jwtService,
-      UserDetailsServiceAuth userDetailsServiceAuth) {
+      UserDetailsServiceAuth userDetailsServiceAuth, UserDetailsCacheRepository userDetailsCacheRepository) {
     this.handlerExceptionResolver = handlerExceptionResolver;
     this.jwtService = jwtService;
     this.userDetailsService = userDetailsServiceAuth;
+    this.userDetailsCacheRepository = userDetailsCacheRepository;
   }
 
   @Override
@@ -43,6 +47,8 @@ public class JwtFilter extends OncePerRequestFilter {
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
     final String authorizationHeader = request.getHeader("Authorization");
+    if ("/auth/login".equals(request.getRequestURI()) && !hasRefreshToken(request))
+      generateRefreshToken(request, response);
     if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
       System.err.println(
           "Request does not contain authorization header OR token does not start with Bearer");
@@ -74,35 +80,32 @@ public class JwtFilter extends OncePerRequestFilter {
 
     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
     SecurityContextHolder.getContext().setAuthentication(authToken);
-    // set refresh token if missing
-    if (!hasRefreshToken(request)) {
-      Cookie cookie = new Cookie("X-REFRESH-TOKEN", generateRefreshToken());
-      cookie.setHttpOnly(true);
-      cookie.setPath("/");
-      cookie.setMaxAge(3600);
-      response.addCookie(cookie);
-    }
     filterChain.doFilter(request, response);
+  }
+
+  private void saveRefreshTokenInCache(String sessionId, String token) {
+    userDetailsCacheRepository.save(new CacheData(sessionId + "-refresh-token", token));
+    System.out.println("Saving refresh token in cache");
   }
 
   private boolean hasRefreshToken(HttpServletRequest request) {
     Cookie[] requestCookies = request.getCookies();
-    boolean hasToken = false;
-    if (requestCookies != null) {
-      for (Cookie requestCookie : requestCookies) {
-        String cookieName = requestCookie.getName();
-        String cookieValue = requestCookie.getValue();
-        System.out.println("Name: " + cookieName);
-        System.out.println("Value: " + cookieValue);
-        if ("X-REFRESH-TOKEN".equals(cookieName)) hasToken = true;
-      }
-    }
-    return hasToken;
+    if (requestCookies == null) return false;
+
+    for (Cookie requestCookie : requestCookies)
+      if ("X-REFRESH-TOKEN".equals(requestCookie.getName())) return true;
+
+    return false;
   }
 
-  private String generateRefreshToken() {
-    String randomString = generateRandomString();
-    return hashString(randomString);
+  private void generateRefreshToken(HttpServletRequest request, HttpServletResponse response) {
+    String refreshToken = hashString(generateRandomString());
+    Cookie cookie = new Cookie("X-REFRESH-TOKEN", refreshToken);
+    cookie.setHttpOnly(true);
+    cookie.setPath("/");
+    cookie.setMaxAge(3600);
+    response.addCookie(cookie);
+    saveRefreshTokenInCache(request.getSession().getId(), refreshToken);
   }
 
   private String hashString(String text) {

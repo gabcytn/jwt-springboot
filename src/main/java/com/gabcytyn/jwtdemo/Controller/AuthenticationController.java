@@ -7,6 +7,8 @@ import com.gabcytyn.jwtdemo.DTO.UserPrincipal;
 import com.gabcytyn.jwtdemo.Service.AuthenticationService;
 import java.util.HashMap;
 import java.util.Map;
+
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -35,24 +37,24 @@ public class AuthenticationController {
   }
 
   @PostMapping("/login")
-  public ResponseEntity<LoginResponseDto> login(@RequestBody LoginUserDto user) {
+  public ResponseEntity<LoginResponseDto> login(@RequestBody LoginUserDto user, HttpServletRequest request) {
     try {
-      LoginResponseDto response = authenticationService.authenticate(user);
+      LoginResponseDto response = authenticationService.authenticate(user, request);
       return new ResponseEntity<>(response, HttpStatus.OK);
     } catch (Exception e) {
       return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
-  @PostMapping("/refresh-token")
-  public ResponseEntity<LoginResponseDto> refreshToken() {
+  @PostMapping("/refresh-token/{deviceName}")
+  public ResponseEntity<LoginResponseDto> refreshToken(@PathVariable String deviceName, HttpServletRequest request) {
     try {
-      // TODO: generate new refresh token.
-      return new ResponseEntity<LoginResponseDto>(HttpStatus.OK);
+      LoginResponseDto responseDto = authenticationService.newJwt(request, deviceName);
+      return new ResponseEntity<>(responseDto, HttpStatus.OK);
     } catch (Exception e) {
       System.err.println("Error generating new refresh token");
       System.err.println(e.getMessage());
-      return new ResponseEntity<LoginResponseDto>(HttpStatus.INTERNAL_SERVER_ERROR);
+      return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 

@@ -52,7 +52,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             authorizationManagerRequestMatcherRegistry -> {
               authorizationManagerRequestMatcherRegistry
-                  .requestMatchers("/auth/login", "/auth/register")
+                  .requestMatchers("/auth/login", "/auth/register", "/auth/refresh-token/**")
                   .permitAll()
                   .anyRequest()
                   .authenticated();
