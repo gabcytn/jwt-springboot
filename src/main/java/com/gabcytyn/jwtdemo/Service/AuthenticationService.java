@@ -8,6 +8,7 @@ import com.gabcytyn.jwtdemo.Repository.UserDetailsCacheRepository;
 import com.gabcytyn.jwtdemo.Repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Optional;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,6 +24,7 @@ public class AuthenticationService {
   private final JwtService jwtService;
   private final UserDetailsCacheRepository userDetailsCacheRepository;
   private final ObjectMapper objectMapper;
+  private final Long oneWeek = 60L * 60 * 24 * 7;
 
   public AuthenticationService(
       UserRepository userRepository,
@@ -68,12 +70,11 @@ public class AuthenticationService {
           userDetailsCacheRepository.findById(request.getSession().getId() + "-refresh-token");
       if (cacheData.isPresent()) {
         String refreshToken = cacheData.get().getValue();
-        Long oneWeekExp = 60L * 60 * 24 * 7;
         RefreshTokenValidatorDto tokenValidatorDto =
             new RefreshTokenValidatorDto(user.getEmail(), user.getDeviceName());
         String tokenValidatorAsString = objectMapper.writeValueAsString(tokenValidatorDto);
         userDetailsCacheRepository.save(
-            new CacheData(refreshToken, tokenValidatorAsString, oneWeekExp)); // 1 week
+            new CacheData(refreshToken, tokenValidatorAsString, oneWeek)); // 1 week
         System.out.println("Refresh token: " + refreshToken);
         // delete old cache
         userDetailsCacheRepository.deleteById(request.getSession().getId() + "-refresh-token");
@@ -86,7 +87,9 @@ public class AuthenticationService {
     throw new Exception("User not found");
   }
 
-  public LoginResponseDto newJwt(HttpServletRequest request, String deviceName) throws Exception {
+  public LoginResponseDto newJwt(
+      HttpServletRequest request, HttpServletResponse response, String deviceName)
+      throws Exception {
     try {
       Cookie refreshTokenCookie = findRefreshTokenCookie(request.getCookies());
       Optional<CacheData> cacheData =
@@ -100,6 +103,18 @@ public class AuthenticationService {
       if (!deviceName.equals(tokenValidatorDto.deviceName()))
         throw new Exception("Stored device name does not match request's device name");
       String jwt = jwtService.generateToken(tokenValidatorDto.email());
+
+      // delete old refresh token
+      userDetailsCacheRepository.deleteById(refreshTokenCookie.getValue());
+      // saved in cache with key of current session id
+      jwtService.generateRefreshToken(request, response);
+      // rename cache key from session id to new refresh token
+      Optional<CacheData> newCacheData =
+          userDetailsCacheRepository.findById(request.getSession().getId() + "-refresh-token");
+      if (newCacheData.isEmpty()) throw new Exception("New refresh token not found");
+      String newRefreshToken = newCacheData.get().getValue();
+      userDetailsCacheRepository.save(new CacheData(newRefreshToken, tokenValidatorAsString, oneWeek));
+
       return new LoginResponseDto(jwt, jwtService.getExpirationTime());
     } catch (Exception e) {
       System.err.println("Error generating new JWT");
