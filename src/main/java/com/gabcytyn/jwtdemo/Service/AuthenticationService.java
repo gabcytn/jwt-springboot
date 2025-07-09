@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gabcytyn.jwtdemo.DTO.*;
 import com.gabcytyn.jwtdemo.Entity.User;
+import com.gabcytyn.jwtdemo.Exception.AuthenticationException;
+import com.gabcytyn.jwtdemo.Exception.RefreshTokenException;
 import com.gabcytyn.jwtdemo.Repository.RedisCacheRepository;
 import com.gabcytyn.jwtdemo.Repository.UserRepository;
 import jakarta.servlet.http.Cookie;
@@ -41,7 +43,7 @@ public class AuthenticationService {
     this.objectMapper = objectMapper;
   }
 
-  public void signup(RegisterUserDto user) throws Exception {
+  public void signup(RegisterUserDto user) throws AuthenticationException {
     try {
       User userToSave = new User();
       userToSave.setEmail(user.getEmail());
@@ -52,7 +54,7 @@ public class AuthenticationService {
     } catch (Exception e) {
       System.err.println("Error signing up user: " + user.getEmail());
       System.err.println(e.getMessage());
-      throw new Exception(
+      throw new AuthenticationException(
           "User with email of: " + user.getEmail() + " fails to be inserted in the DB.");
     }
   }
@@ -64,7 +66,7 @@ public class AuthenticationService {
         new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword());
     Authentication authentication = authenticationManager.authenticate(authToken);
 
-    if (!authentication.isAuthenticated()) throw new Exception("User not found");
+    if (!authentication.isAuthenticated()) throw new AuthenticationException("User not found");
 
     String token = jwtService.generateToken(user.getEmail());
     // for future validation of a refresh token
@@ -78,18 +80,18 @@ public class AuthenticationService {
 
   public LoginResponseDto newJwt(
       HttpServletRequest request, HttpServletResponse response, String deviceName)
-      throws Exception {
+      throws RefreshTokenException {
     try {
       Cookie refreshTokenCookie = findRefreshTokenCookie(request.getCookies());
       Optional<CacheData> cacheData = redisCacheRepository.findById(refreshTokenCookie.getValue());
-      if (cacheData.isEmpty()) throw new Exception("Refresh token is invalid.");
+      if (cacheData.isEmpty()) throw new RefreshTokenException("Refresh token is invalid.");
 
       String tokenValidatorAsString = cacheData.get().getValue();
       TypeReference<RefreshTokenValidatorDto> mapType = new TypeReference<>() {};
       RefreshTokenValidatorDto tokenValidatorDto =
           objectMapper.readValue(tokenValidatorAsString, mapType);
       if (!deviceName.equals(tokenValidatorDto.deviceName()))
-        throw new Exception("Stored device name does not match request's device name");
+        throw new RefreshTokenException("Stored device name does not match request's device name");
       String jwt = jwtService.generateToken(tokenValidatorDto.email());
 
       // delete old refresh token
@@ -99,18 +101,18 @@ public class AuthenticationService {
     } catch (Exception e) {
       System.err.println("Error generating new JWT");
       System.err.println(e.getMessage());
-      throw new Exception(e.getMessage());
+      throw new RefreshTokenException(e.getMessage());
     }
   }
 
   private Cookie findRefreshTokenCookie(Cookie[] cookies) throws Exception {
-    if (cookies == null) throw new Exception("No cookies found.");
+    if (cookies == null) throw new RefreshTokenException("No cookies found.");
 
     for (Cookie cookie : cookies) {
       if ("X-REFRESH-TOKEN".equals(cookie.getName())) return cookie;
     }
 
-    throw new Exception("Refresh token cookie not found.");
+    throw new RefreshTokenException("Refresh token cookie not found.");
   }
 
   private boolean hasRefreshToken(HttpServletRequest request) {
