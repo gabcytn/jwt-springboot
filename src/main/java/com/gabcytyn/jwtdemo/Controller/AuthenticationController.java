@@ -43,6 +43,8 @@ public class AuthenticationController {
       LoginResponseDto response = authenticationService.authenticate(user, request);
       return new ResponseEntity<>(response, HttpStatus.OK);
     } catch (Exception e) {
+      System.err.println(e.getMessage());
+      e.printStackTrace();
       return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -55,7 +57,7 @@ public class AuthenticationController {
       return new ResponseEntity<>(responseDto, HttpStatus.OK);
     } catch (Exception e) {
       System.err.println("Error generating new refresh token");
-      System.err.println(e.getMessage());
+      e.printStackTrace();
       return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }

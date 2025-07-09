@@ -63,28 +63,28 @@ public class AuthenticationService {
         new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword());
     Authentication authentication = authenticationManager.authenticate(authToken);
 
-    // generate JWT if user exists
-    if (authentication.isAuthenticated()) {
-      String token = jwtService.generateToken(user.getEmail());
-      Optional<CacheData> cacheData =
-          redisCacheRepository.findById(request.getSession().getId() + "-refresh-token");
-      if (cacheData.isPresent()) {
-        String refreshToken = cacheData.get().getValue();
-        RefreshTokenValidatorDto tokenValidatorDto =
-            new RefreshTokenValidatorDto(user.getEmail(), user.getDeviceName());
-        String tokenValidatorAsString = objectMapper.writeValueAsString(tokenValidatorDto);
-        redisCacheRepository.save(
-            new CacheData(refreshToken, tokenValidatorAsString, oneWeek)); // 1 week
-        System.out.println("Refresh token: " + refreshToken);
-        // delete old cache
-        redisCacheRepository.deleteById(request.getSession().getId() + "-refresh-token");
-      } else {
-        throw new Exception("No refresh token found");
-      }
-      return new LoginResponseDto(token, jwtService.getExpirationTime());
-    }
+    if (!authentication.isAuthenticated())
+      throw new Exception("User not found");
 
-    throw new Exception("User not found");
+    // generate JWT if user exists
+    String token = jwtService.generateToken(user.getEmail());
+    Optional<CacheData> cacheData =
+        redisCacheRepository.findById(request.getSession().getId() + "-refresh-token");
+
+    if (cacheData.isEmpty())
+      throw new Exception("No refresh token found");
+
+    String refreshToken = cacheData.get().getValue();
+    RefreshTokenValidatorDto tokenValidatorDto =
+        new RefreshTokenValidatorDto(user.getEmail(), user.getDeviceName());
+    String tokenValidatorAsString = objectMapper.writeValueAsString(tokenValidatorDto);
+    redisCacheRepository.save(
+        new CacheData(refreshToken, tokenValidatorAsString, oneWeek)); // 1 week
+    System.out.println("Refresh token: " + refreshToken);
+    // delete old cache
+    redisCacheRepository.delete(cacheData.get());
+    return new LoginResponseDto(token, jwtService.getExpirationTime());
+
   }
 
   public LoginResponseDto newJwt(
@@ -105,7 +105,7 @@ public class AuthenticationService {
       String jwt = jwtService.generateToken(tokenValidatorDto.email());
 
       // delete old refresh token
-      redisCacheRepository.deleteById(refreshTokenCookie.getValue());
+      redisCacheRepository.delete(cacheData.get());
       // saved in cache with key of current session id
       jwtService.generateRefreshToken(request, response);
       // rename cache key from session id to new refresh token
@@ -114,6 +114,8 @@ public class AuthenticationService {
       if (newCacheData.isEmpty()) throw new Exception("New refresh token not found");
       String newRefreshToken = newCacheData.get().getValue();
       redisCacheRepository.save(new CacheData(newRefreshToken, tokenValidatorAsString, oneWeek));
+      // delete previous session id -> refresh token mapping
+      redisCacheRepository.delete(newCacheData.get());
 
       return new LoginResponseDto(jwt, jwtService.getExpirationTime());
     } catch (Exception e) {

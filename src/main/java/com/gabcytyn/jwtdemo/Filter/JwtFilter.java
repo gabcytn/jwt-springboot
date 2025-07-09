@@ -41,8 +41,7 @@ public class JwtFilter extends OncePerRequestFilter {
     if ("/auth/login".equals(request.getRequestURI()) && !hasRefreshToken(request))
       jwtService.generateRefreshToken(request, response);
     if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-      System.err.println(
-          "Request does not contain authorization header OR token does not start with Bearer");
+      System.err.println("No auth header / doesn't start with Bearer");
       filterChain.doFilter(request, response);
       return;
     }
