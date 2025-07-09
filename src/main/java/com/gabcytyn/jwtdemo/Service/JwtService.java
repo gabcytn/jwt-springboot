@@ -7,7 +7,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -91,14 +90,15 @@ public class JwtService {
     return Keys.hmacShaKeyFor(keyBytes);
   }
 
-  public void generateRefreshToken(HttpServletRequest request, HttpServletResponse response) {
+  public void generateRefreshToken(
+      HttpServletResponse response, String tokenValidatorAsString, Long expiration) {
     String refreshToken = hashString(generateRandomString());
     Cookie cookie = new Cookie("X-REFRESH-TOKEN", refreshToken);
     cookie.setHttpOnly(true);
     cookie.setPath("/");
     cookie.setMaxAge(3600);
     response.addCookie(cookie);
-    saveRefreshTokenInCache(request.getSession().getId(), refreshToken);
+    redisCacheRepository.save(new CacheData(refreshToken, tokenValidatorAsString, expiration));
   }
 
   private String hashString(String text) {
@@ -122,10 +122,5 @@ public class JwtService {
       sb.append(String.format("%02x", b));
     }
     return sb.toString();
-  }
-
-  private void saveRefreshTokenInCache(String sessionId, String token) {
-    redisCacheRepository.save(new CacheData(sessionId + "-refresh-token", token));
-    System.out.println("Saving refresh token in cache");
   }
 }

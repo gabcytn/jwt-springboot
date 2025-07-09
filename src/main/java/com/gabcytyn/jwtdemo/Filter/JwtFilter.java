@@ -38,8 +38,6 @@ public class JwtFilter extends OncePerRequestFilter {
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
     final String authorizationHeader = request.getHeader("Authorization");
-    if ("/auth/login".equals(request.getRequestURI()) && !hasRefreshToken(request))
-      jwtService.generateRefreshToken(request, response);
     if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
       System.err.println("No auth header / doesn't start with Bearer");
       filterChain.doFilter(request, response);
@@ -73,13 +71,4 @@ public class JwtFilter extends OncePerRequestFilter {
     filterChain.doFilter(request, response);
   }
 
-  private boolean hasRefreshToken(HttpServletRequest request) {
-    Cookie[] requestCookies = request.getCookies();
-    if (requestCookies == null) return false;
-
-    for (Cookie requestCookie : requestCookies)
-      if ("X-REFRESH-TOKEN".equals(requestCookie.getName())) return true;
-
-    return false;
-  }
 }

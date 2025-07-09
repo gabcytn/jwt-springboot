@@ -38,10 +38,10 @@ public class AuthenticationController {
 
   @PostMapping("/login")
   public ResponseEntity<LoginResponseDto> login(
-      @RequestBody LoginUserDto user, HttpServletRequest request) {
+      @RequestBody LoginUserDto user, HttpServletRequest request, HttpServletResponse response) {
     try {
-      LoginResponseDto response = authenticationService.authenticate(user, request);
-      return new ResponseEntity<>(response, HttpStatus.OK);
+      LoginResponseDto responseDto = authenticationService.authenticate(request, response, user);
+      return new ResponseEntity<>(responseDto, HttpStatus.OK);
     } catch (Exception e) {
       System.err.println(e.getMessage());
       e.printStackTrace();
