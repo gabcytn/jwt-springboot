@@ -26,6 +26,8 @@ public class AuthenticationService {
   private final JwtService jwtService;
   private final RedisCacheRepository redisCacheRepository;
   private final ObjectMapper objectMapper;
+  private final HttpServletRequest request;
+  private final HttpServletResponse response;
   private final Long oneWeek = 60L * 60 * 24 * 7;
 
   public AuthenticationService(
@@ -34,13 +36,16 @@ public class AuthenticationService {
       AuthenticationManager authenticationManager,
       JwtService jwtService,
       RedisCacheRepository redisCacheRepository,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper, HttpServletRequest request,
+      HttpServletResponse response) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.authenticationManager = authenticationManager;
     this.jwtService = jwtService;
     this.redisCacheRepository = redisCacheRepository;
     this.objectMapper = objectMapper;
+    this.request = request;
+    this.response = response;
   }
 
   public void signup(RegisterUserDto user) throws AuthenticationException {
@@ -59,8 +64,7 @@ public class AuthenticationService {
     }
   }
 
-  public LoginResponseDto authenticate(
-      HttpServletRequest request, HttpServletResponse response, LoginUserDto user)
+  public LoginResponseDto authenticate(LoginUserDto user)
       throws Exception {
     Authentication authToken =
         new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword());
@@ -78,8 +82,7 @@ public class AuthenticationService {
     return new LoginResponseDto(token, jwtService.getExpirationTime());
   }
 
-  public LoginResponseDto newJwt(
-      HttpServletRequest request, HttpServletResponse response, String deviceName)
+  public LoginResponseDto newJwt(String deviceName)
       throws RefreshTokenException {
     try {
       Cookie refreshTokenCookie = findRefreshTokenCookie(request.getCookies());

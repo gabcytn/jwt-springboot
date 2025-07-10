@@ -6,8 +6,6 @@ import com.gabcytyn.jwtdemo.DTO.RegisterUserDto;
 import com.gabcytyn.jwtdemo.DTO.UserPrincipal;
 import com.gabcytyn.jwtdemo.Exception.AuthenticationException;
 import com.gabcytyn.jwtdemo.Service.AuthenticationService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -33,18 +31,15 @@ public class AuthenticationController {
   }
 
   @PostMapping("/login")
-  public ResponseEntity<LoginResponseDto> login(
-      @RequestBody LoginUserDto user, HttpServletRequest request, HttpServletResponse response)
-      throws Exception {
-    LoginResponseDto responseDto = authenticationService.authenticate(request, response, user);
+  public ResponseEntity<LoginResponseDto> login(@RequestBody LoginUserDto user) throws Exception {
+    LoginResponseDto responseDto = authenticationService.authenticate(user);
     return new ResponseEntity<>(responseDto, HttpStatus.OK);
   }
 
   @PostMapping("/refresh-token/{deviceName}")
-  public ResponseEntity<LoginResponseDto> refreshToken(
-      @PathVariable String deviceName, HttpServletRequest request, HttpServletResponse response)
+  public ResponseEntity<LoginResponseDto> refreshToken(@PathVariable String deviceName)
       throws Exception {
-    LoginResponseDto responseDto = authenticationService.newJwt(request, response, deviceName);
+    LoginResponseDto responseDto = authenticationService.newJwt(deviceName);
     return new ResponseEntity<>(responseDto, HttpStatus.OK);
   }
 
