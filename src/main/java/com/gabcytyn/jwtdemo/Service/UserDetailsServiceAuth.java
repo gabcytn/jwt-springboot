@@ -51,7 +51,7 @@ public class UserDetailsServiceAuth implements UserDetailsService {
       try {
         redisCacheRepository.save(
             new CacheData(
-                presentUser.getEmail(), objectMapper.writeValueAsString(presentUser), -1L)); // cache forever
+                presentUser.getEmail(), objectMapper.writeValueAsString(presentUser), 60L * 15)); // cache for 15 mins
         return new UserPrincipal(presentUser);
       } catch (JsonProcessingException e) {
         System.err.println("Error writing user entity as String");
