@@ -82,11 +82,10 @@ public class AuthenticationService {
     return new LoginResponseDto(token, jwtService.getExpirationTime());
   }
 
-  public LoginResponseDto newJwt(String deviceName)
+  public LoginResponseDto newJwt(String refreshToken, String deviceName)
       throws RefreshTokenException {
     try {
-      Cookie refreshTokenCookie = findRefreshTokenCookie(request.getCookies());
-      Optional<CacheData> cacheData = redisCacheRepository.findById(refreshTokenCookie.getValue());
+      Optional<CacheData> cacheData = redisCacheRepository.findById(refreshToken);
       if (cacheData.isEmpty()) throw new RefreshTokenException("Refresh token is invalid.");
 
       String tokenValidatorAsString = cacheData.get().getValue();
@@ -106,16 +105,6 @@ public class AuthenticationService {
       System.err.println(e.getMessage());
       throw new RefreshTokenException(e.getMessage());
     }
-  }
-
-  private Cookie findRefreshTokenCookie(Cookie[] cookies) throws Exception {
-    if (cookies == null) throw new RefreshTokenException("No cookies found.");
-
-    for (Cookie cookie : cookies) {
-      if ("X-REFRESH-TOKEN".equals(cookie.getName())) return cookie;
-    }
-
-    throw new RefreshTokenException("Refresh token cookie not found.");
   }
 
   private boolean hasRefreshToken(HttpServletRequest request) {

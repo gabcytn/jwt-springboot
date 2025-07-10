@@ -37,9 +37,9 @@ public class AuthenticationController {
   }
 
   @PostMapping("/refresh-token/{deviceName}")
-  public ResponseEntity<LoginResponseDto> refreshToken(@PathVariable String deviceName)
+  public ResponseEntity<LoginResponseDto> refreshToken(@PathVariable String deviceName, @CookieValue("X-REFRESH-TOKEN") String refreshToken)
       throws Exception {
-    LoginResponseDto responseDto = authenticationService.newJwt(deviceName);
+    LoginResponseDto responseDto = authenticationService.newJwt(refreshToken, deviceName);
     return new ResponseEntity<>(responseDto, HttpStatus.OK);
   }
 
