@@ -1,9 +1,6 @@
 package com.gabcytyn.jwtdemo.Controller;
 
-import com.gabcytyn.jwtdemo.DTO.LoginResponseDto;
-import com.gabcytyn.jwtdemo.DTO.LoginUserDto;
-import com.gabcytyn.jwtdemo.DTO.RegisterUserDto;
-import com.gabcytyn.jwtdemo.DTO.UserPrincipal;
+import com.gabcytyn.jwtdemo.DTO.*;
 import com.gabcytyn.jwtdemo.Exception.AuthenticationException;
 import com.gabcytyn.jwtdemo.Service.AuthenticationService;
 import java.util.HashMap;
@@ -36,10 +33,13 @@ public class AuthenticationController {
     return new ResponseEntity<>(responseDto, HttpStatus.OK);
   }
 
-  @PostMapping("/refresh-token/{deviceName}")
-  public ResponseEntity<LoginResponseDto> refreshToken(@PathVariable String deviceName, @CookieValue("X-REFRESH-TOKEN") String refreshToken)
+  @PostMapping("/refresh-token")
+  public ResponseEntity<LoginResponseDto> refreshToken(
+      @RequestBody RefreshTokenRequest tokenRequest,
+      @CookieValue("X-REFRESH-TOKEN") String refreshToken)
       throws Exception {
-    LoginResponseDto responseDto = authenticationService.newJwt(refreshToken, deviceName);
+    LoginResponseDto responseDto =
+        authenticationService.newJwt(refreshToken, tokenRequest.getDeviceName());
     return new ResponseEntity<>(responseDto, HttpStatus.OK);
   }
 
