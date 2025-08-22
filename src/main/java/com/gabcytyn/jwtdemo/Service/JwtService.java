@@ -1,7 +1,5 @@
 package com.gabcytyn.jwtdemo.Service;
 
-import com.gabcytyn.jwtdemo.DTO.CacheData;
-import com.gabcytyn.jwtdemo.Repository.RedisCacheRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -24,7 +22,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class JwtService {
-  private final RedisCacheRepository redisCacheRepository;
   private final HttpServletResponse response;
 
   @Value("${security.jwt.secret-key}")
@@ -33,8 +30,7 @@ public class JwtService {
   @Value("${security.jwt.expiration-time}")
   private long jwtExpiration;
 
-  public JwtService(RedisCacheRepository redisCacheRepository, HttpServletResponse response) {
-    this.redisCacheRepository = redisCacheRepository;
+  public JwtService(HttpServletResponse response) {
     this.response = response;
   }
 

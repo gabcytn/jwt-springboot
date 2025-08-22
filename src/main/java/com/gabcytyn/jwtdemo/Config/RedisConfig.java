@@ -1,6 +1,7 @@
 package com.gabcytyn.jwtdemo.Config;
 
 import com.gabcytyn.jwtdemo.DTO.RefreshTokenValidatorDto;
+import com.gabcytyn.jwtdemo.Entity.User;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,12 +9,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
-@EnableRedisRepositories("com.gabcytyn.jwtdemo.Repository")
 public class RedisConfig {
   @Bean
   public LettuceConnectionFactory lettuceConnectionFactory() {
@@ -27,15 +26,18 @@ public class RedisConfig {
   }
 
   @Bean
-  public RedisTemplate<byte[], byte[]> redisTemplate() {
-    RedisTemplate<byte[], byte[]> template = new RedisTemplate<>();
+  public RedisTemplate<String, RefreshTokenValidatorDto> refreshTokenRedisTemplate() {
+    RedisTemplate<String, RefreshTokenValidatorDto> template = new RedisTemplate<>();
     template.setConnectionFactory(lettuceConnectionFactory());
+    template.setKeySerializer(StringRedisSerializer.UTF_8);
+    template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+    template.afterPropertiesSet();
     return template;
   }
 
   @Bean
-  public RedisTemplate<String, RefreshTokenValidatorDto> refreshTokenRedisTemplate() {
-    RedisTemplate<String, RefreshTokenValidatorDto> template = new RedisTemplate<>();
+  public RedisTemplate<String, User> userRedisTemplate() {
+    RedisTemplate<String, User> template = new RedisTemplate<>();
     template.setConnectionFactory(lettuceConnectionFactory());
     template.setKeySerializer(StringRedisSerializer.UTF_8);
     template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
