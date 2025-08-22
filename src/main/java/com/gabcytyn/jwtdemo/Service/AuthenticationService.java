@@ -1,12 +1,9 @@
 package com.gabcytyn.jwtdemo.Service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gabcytyn.jwtdemo.DTO.*;
 import com.gabcytyn.jwtdemo.Entity.User;
 import com.gabcytyn.jwtdemo.Exception.AuthenticationException;
 import com.gabcytyn.jwtdemo.Exception.RefreshTokenException;
-import com.gabcytyn.jwtdemo.Repository.RedisCacheRepository;
 import com.gabcytyn.jwtdemo.Repository.UserRepository;
 import java.util.Optional;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,23 +18,19 @@ public class AuthenticationService {
   private final PasswordEncoder passwordEncoder;
   private final AuthenticationManager authenticationManager;
   private final JwtService jwtService;
-  private final RedisCacheRepository redisCacheRepository;
-  private final ObjectMapper objectMapper;
-  private final Long oneWeek = 60L * 60 * 24 * 7;
+  private final CachingService cachingService;
 
   public AuthenticationService(
       UserRepository userRepository,
       PasswordEncoder passwordEncoder,
       AuthenticationManager authenticationManager,
       JwtService jwtService,
-      RedisCacheRepository redisCacheRepository,
-      ObjectMapper objectMapper) {
+      CachingService cachingService) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.authenticationManager = authenticationManager;
     this.jwtService = jwtService;
-    this.redisCacheRepository = redisCacheRepository;
-    this.objectMapper = objectMapper;
+    this.cachingService = cachingService;
   }
 
   public void signup(RegisterUserDto user) throws AuthenticationException {
@@ -66,11 +59,11 @@ public class AuthenticationService {
 
     String token = jwtService.generateToken(user.getEmail());
     // for future validation of a refresh token
-    RefreshTokenValidatorDto tokenValidatorDto =
-        new RefreshTokenValidatorDto(user.getEmail(), user.getDeviceName());
-    String tokenValidatorAsString = objectMapper.writeValueAsString(tokenValidatorDto);
     if (refreshToken.isEmpty()) {
-      jwtService.generateRefreshToken(tokenValidatorAsString, oneWeek);
+      RefreshTokenValidatorDto tokenValidatorDto =
+          new RefreshTokenValidatorDto(user.getEmail(), user.getDeviceName());
+      String generatedRefreshToken = jwtService.generateRefreshToken();
+      cachingService.saveRefreshToken(generatedRefreshToken, tokenValidatorDto);
     }
     return new LoginResponseDto(token, jwtService.getExpirationTime());
   }
@@ -78,20 +71,16 @@ public class AuthenticationService {
   public LoginResponseDto newJwt(String refreshToken, String deviceName)
       throws RefreshTokenException {
     try {
-      Optional<CacheData> cacheData = redisCacheRepository.findById(refreshToken);
-      if (cacheData.isEmpty()) throw new RefreshTokenException("Refresh token is invalid.");
-
-      String tokenValidatorAsString = cacheData.get().getValue();
-      TypeReference<RefreshTokenValidatorDto> mapType = new TypeReference<>() {};
-      RefreshTokenValidatorDto tokenValidatorDto =
-          objectMapper.readValue(tokenValidatorAsString, mapType);
-      if (!deviceName.equals(tokenValidatorDto.deviceName()))
+      RefreshTokenValidatorDto validator = cachingService.getRefreshTokenValidator(refreshToken);
+      if (validator == null)
+        throw new RefreshTokenException("Refresh token not found.");
+      if (!deviceName.equals(validator.deviceName()))
         throw new RefreshTokenException("Stored device name does not match request's device name");
-      String jwt = jwtService.generateToken(tokenValidatorDto.email());
+      String jwt = jwtService.generateToken(validator.email());
 
-      // delete old refresh token
-      redisCacheRepository.delete(cacheData.get());
-      jwtService.generateRefreshToken(tokenValidatorAsString, oneWeek);
+      cachingService.deleteRefreshToken(refreshToken);
+      String generatedRefreshToken = jwtService.generateRefreshToken();
+      cachingService.saveRefreshToken(generatedRefreshToken, validator);
       return new LoginResponseDto(jwt, jwtService.getExpirationTime());
     } catch (Exception e) {
       System.err.println("Error generating new JWT");

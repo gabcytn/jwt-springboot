@@ -92,14 +92,14 @@ public class JwtService {
     return Keys.hmacShaKeyFor(keyBytes);
   }
 
-  public void generateRefreshToken(String tokenValidatorAsString, Long expiration) {
+  public String generateRefreshToken() {
     String refreshToken = hashString(generateRandomString());
     Cookie cookie = new Cookie("X-REFRESH-TOKEN", refreshToken);
     cookie.setHttpOnly(true);
     cookie.setPath("/");
     cookie.setMaxAge(3600);
     response.addCookie(cookie);
-    redisCacheRepository.save(new CacheData(refreshToken, tokenValidatorAsString, expiration));
+    return refreshToken;
   }
 
   private String hashString(String text) {
