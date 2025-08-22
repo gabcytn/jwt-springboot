@@ -6,6 +6,9 @@ import com.gabcytyn.jwtdemo.Service.AuthenticationService;
 import jakarta.validation.Valid;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/auth")
 public class AuthenticationController {
+  private static final Logger LOG = LoggerFactory.getLogger(AuthenticationController.class);
   private final AuthenticationService authenticationService;
 
   public AuthenticationController(AuthenticationService authenticationService) {
@@ -29,17 +33,24 @@ public class AuthenticationController {
   }
 
   @PostMapping("/login")
-  public ResponseEntity<LoginResponseDto> login(@RequestBody @Valid LoginUserDto user)
+  public ResponseEntity<LoginResponseDto> login(
+      @RequestBody @Valid LoginUserDto user,
+      @CookieValue(value = "X-REFRESH-TOKEN", required = false) String refreshToken)
       throws Exception {
-    LoginResponseDto responseDto = authenticationService.authenticate(user);
+    LOG.info("Refresh token: {}", refreshToken);
+    LoginResponseDto responseDto =
+        authenticationService.authenticate(user, Optional.ofNullable(refreshToken));
     return new ResponseEntity<>(responseDto, HttpStatus.OK);
   }
 
   @PostMapping("/refresh-token")
   public ResponseEntity<LoginResponseDto> refreshToken(
       @RequestBody @Valid RefreshTokenRequest tokenRequest,
-      @CookieValue("X-REFRESH-TOKEN") String refreshToken)
+      @CookieValue(value = "X-REFRESH-TOKEN", required = false) String refreshToken)
       throws Exception {
+    if (refreshToken == null) {
+      return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
     LoginResponseDto responseDto =
         authenticationService.newJwt(refreshToken, tokenRequest.getDeviceName());
     return new ResponseEntity<>(responseDto, HttpStatus.OK);

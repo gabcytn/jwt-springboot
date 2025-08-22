@@ -64,7 +64,7 @@ public class AuthenticationService {
     }
   }
 
-  public LoginResponseDto authenticate(LoginUserDto user)
+  public LoginResponseDto authenticate(LoginUserDto user, Optional<String> refreshToken)
       throws Exception {
     Authentication authToken =
         new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword());
@@ -77,7 +77,7 @@ public class AuthenticationService {
     RefreshTokenValidatorDto tokenValidatorDto =
         new RefreshTokenValidatorDto(user.getEmail(), user.getDeviceName());
     String tokenValidatorAsString = objectMapper.writeValueAsString(tokenValidatorDto);
-    if (!hasRefreshToken(request))
+    if (refreshToken.isEmpty())
       jwtService.generateRefreshToken(response, tokenValidatorAsString, oneWeek);
     return new LoginResponseDto(token, jwtService.getExpirationTime());
   }
@@ -105,15 +105,5 @@ public class AuthenticationService {
       System.err.println(e.getMessage());
       throw new RefreshTokenException(e.getMessage());
     }
-  }
-
-  private boolean hasRefreshToken(HttpServletRequest request) {
-    Cookie[] requestCookies = request.getCookies();
-    if (requestCookies == null) return false;
-
-    for (Cookie requestCookie : requestCookies)
-      if ("X-REFRESH-TOKEN".equals(requestCookie.getName())) return true;
-
-    return false;
   }
 }
