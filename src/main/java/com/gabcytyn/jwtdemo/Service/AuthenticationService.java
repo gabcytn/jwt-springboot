@@ -8,9 +8,6 @@ import com.gabcytyn.jwtdemo.Exception.AuthenticationException;
 import com.gabcytyn.jwtdemo.Exception.RefreshTokenException;
 import com.gabcytyn.jwtdemo.Repository.RedisCacheRepository;
 import com.gabcytyn.jwtdemo.Repository.UserRepository;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.util.Optional;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,8 +23,6 @@ public class AuthenticationService {
   private final JwtService jwtService;
   private final RedisCacheRepository redisCacheRepository;
   private final ObjectMapper objectMapper;
-  private final HttpServletRequest request;
-  private final HttpServletResponse response;
   private final Long oneWeek = 60L * 60 * 24 * 7;
 
   public AuthenticationService(
@@ -36,16 +31,13 @@ public class AuthenticationService {
       AuthenticationManager authenticationManager,
       JwtService jwtService,
       RedisCacheRepository redisCacheRepository,
-      ObjectMapper objectMapper, HttpServletRequest request,
-      HttpServletResponse response) {
+      ObjectMapper objectMapper) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.authenticationManager = authenticationManager;
     this.jwtService = jwtService;
     this.redisCacheRepository = redisCacheRepository;
     this.objectMapper = objectMapper;
-    this.request = request;
-    this.response = response;
   }
 
   public void signup(RegisterUserDto user) throws AuthenticationException {
@@ -77,8 +69,9 @@ public class AuthenticationService {
     RefreshTokenValidatorDto tokenValidatorDto =
         new RefreshTokenValidatorDto(user.getEmail(), user.getDeviceName());
     String tokenValidatorAsString = objectMapper.writeValueAsString(tokenValidatorDto);
-    if (refreshToken.isEmpty())
-      jwtService.generateRefreshToken(response, tokenValidatorAsString, oneWeek);
+    if (refreshToken.isEmpty()) {
+      jwtService.generateRefreshToken(tokenValidatorAsString, oneWeek);
+    }
     return new LoginResponseDto(token, jwtService.getExpirationTime());
   }
 
@@ -98,7 +91,7 @@ public class AuthenticationService {
 
       // delete old refresh token
       redisCacheRepository.delete(cacheData.get());
-      jwtService.generateRefreshToken(response, tokenValidatorAsString, oneWeek);
+      jwtService.generateRefreshToken(tokenValidatorAsString, oneWeek);
       return new LoginResponseDto(jwt, jwtService.getExpirationTime());
     } catch (Exception e) {
       System.err.println("Error generating new JWT");

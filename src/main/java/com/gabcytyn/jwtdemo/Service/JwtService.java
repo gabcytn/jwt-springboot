@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class JwtService {
   private final RedisCacheRepository redisCacheRepository;
+  private final HttpServletResponse response;
 
   @Value("${security.jwt.secret-key}")
   private String secretKey;
@@ -32,8 +33,9 @@ public class JwtService {
   @Value("${security.jwt.expiration-time}")
   private long jwtExpiration;
 
-  public JwtService(RedisCacheRepository redisCacheRepository) {
+  public JwtService(RedisCacheRepository redisCacheRepository, HttpServletResponse response) {
     this.redisCacheRepository = redisCacheRepository;
+    this.response = response;
   }
 
   public String extractUsername(String token) {
@@ -90,8 +92,7 @@ public class JwtService {
     return Keys.hmacShaKeyFor(keyBytes);
   }
 
-  public void generateRefreshToken(
-      HttpServletResponse response, String tokenValidatorAsString, Long expiration) {
+  public void generateRefreshToken(String tokenValidatorAsString, Long expiration) {
     String refreshToken = hashString(generateRandomString());
     Cookie cookie = new Cookie("X-REFRESH-TOKEN", refreshToken);
     cookie.setHttpOnly(true);
