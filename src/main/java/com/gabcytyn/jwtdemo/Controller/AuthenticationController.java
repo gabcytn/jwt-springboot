@@ -3,6 +3,7 @@ package com.gabcytyn.jwtdemo.Controller;
 import com.gabcytyn.jwtdemo.DTO.*;
 import com.gabcytyn.jwtdemo.Exception.AuthenticationException;
 import com.gabcytyn.jwtdemo.Service.AuthenticationService;
+import jakarta.validation.Valid;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -21,21 +22,22 @@ public class AuthenticationController {
   }
 
   @PostMapping("/register")
-  public ResponseEntity<Void> register(@RequestBody RegisterUserDto user)
+  public ResponseEntity<Void> register(@RequestBody @Valid RegisterUserDto user)
       throws AuthenticationException {
     authenticationService.signup(user);
     return new ResponseEntity<>(HttpStatus.CREATED);
   }
 
   @PostMapping("/login")
-  public ResponseEntity<LoginResponseDto> login(@RequestBody LoginUserDto user) throws Exception {
+  public ResponseEntity<LoginResponseDto> login(@RequestBody @Valid LoginUserDto user)
+      throws Exception {
     LoginResponseDto responseDto = authenticationService.authenticate(user);
     return new ResponseEntity<>(responseDto, HttpStatus.OK);
   }
 
   @PostMapping("/refresh-token")
   public ResponseEntity<LoginResponseDto> refreshToken(
-      @RequestBody RefreshTokenRequest tokenRequest,
+      @RequestBody @Valid RefreshTokenRequest tokenRequest,
       @CookieValue("X-REFRESH-TOKEN") String refreshToken)
       throws Exception {
     LoginResponseDto responseDto =

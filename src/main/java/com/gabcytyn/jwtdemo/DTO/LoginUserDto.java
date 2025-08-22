@@ -1,9 +1,21 @@
 package com.gabcytyn.jwtdemo.DTO;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public class LoginUserDto {
-  // TODO: add validation
+  @NotNull(message = "Email is required.")
+  @NotBlank(message = "Email must not be blank.")
+  @Email
   private String email;
+
+  @NotNull(message = "Password is required.")
+  @NotBlank(message = "Password must not be blank.")
   private String password;
+
+  @NotNull(message = "Device name is required.")
+  @NotBlank(message = "Device name must not be blank.")
   private String deviceName;
 
   public LoginUserDto(String email, String password, String deviceName) {
