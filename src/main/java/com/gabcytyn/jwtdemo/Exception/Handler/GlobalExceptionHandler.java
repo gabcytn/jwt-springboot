@@ -1,6 +1,7 @@
 package com.gabcytyn.jwtdemo.Exception.Handler;
 
 import com.gabcytyn.jwtdemo.Exception.AuthenticationException;
+import com.gabcytyn.jwtdemo.Exception.DuplicateEmailException;
 import com.gabcytyn.jwtdemo.Exception.RefreshTokenException;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -68,6 +69,12 @@ public class GlobalExceptionHandler {
       errorDetail =
           ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(400), exception.getMessage());
       errorDetail.setProperty("description", "The refresh token in cookies is invalid.");
+    }
+
+    if (exception instanceof DuplicateEmailException) {
+      errorDetail =
+          ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(409), exception.getMessage());
+      errorDetail.setProperty("description", "The email is already taken.");
     }
 
     if (errorDetail == null) {
