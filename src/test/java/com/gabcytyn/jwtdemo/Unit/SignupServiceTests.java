@@ -33,9 +33,9 @@ public class SignupServiceTests {
 
   @BeforeEach
   public void init() {
-    this.email = getRandomEmail();
-    this.fullName = getRandomFullName();
-    this.password = getRandomPassword();
+    this.email = faker.name().fullName();
+    this.fullName = faker.name().fullName();
+    this.password = faker.internet().password();
   }
 
   @Test
@@ -57,17 +57,5 @@ public class SignupServiceTests {
     assertThrows(DuplicateEmailException.class, () -> authenticationService.signup(userDto));
 
     verify(userRepository, times(1)).save(any(User.class));
-  }
-
-  private String getRandomEmail() {
-    return faker.internet().emailAddress();
-  }
-
-  private String getRandomFullName() {
-    return faker.name().fullName();
-  }
-
-  private String getRandomPassword() {
-    return faker.internet().password();
   }
 }
