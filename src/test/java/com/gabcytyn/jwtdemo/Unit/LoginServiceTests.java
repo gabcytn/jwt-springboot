@@ -1,7 +1,6 @@
 package com.gabcytyn.jwtdemo.Unit;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -9,6 +8,7 @@ import static org.mockito.Mockito.*;
 import com.gabcytyn.jwtdemo.DTO.LoginResponseDto;
 import com.gabcytyn.jwtdemo.DTO.LoginUserDto;
 import com.gabcytyn.jwtdemo.DTO.RefreshTokenValidatorDto;
+import com.gabcytyn.jwtdemo.Exception.AuthenticationException;
 import com.gabcytyn.jwtdemo.Repository.UserRepository;
 import com.gabcytyn.jwtdemo.Service.AuthenticationService;
 import com.gabcytyn.jwtdemo.Service.CachingService;
@@ -77,7 +77,8 @@ public class LoginServiceTests {
     when(this.authenticationMock.isAuthenticated()).thenReturn(true);
     when(jwtService.generateToken(anyString())).thenReturn(generatedToken);
 
-    LoginResponseDto responseDto = authenticationService.authenticate(loginDto, Optional.of(anyString()));
+    LoginResponseDto responseDto =
+        authenticationService.authenticate(loginDto, Optional.of(anyString()));
 
     assertNotNull(responseDto);
     assertEquals(generatedToken, responseDto.getToken());
@@ -87,5 +88,18 @@ public class LoginServiceTests {
     verify(jwtService, never()).generateRefreshToken();
     verify(cachingService, never())
         .saveRefreshToken(anyString(), any(RefreshTokenValidatorDto.class));
+  }
+
+  @Test
+  public void testLoginInvalidCredentials() {
+    LoginUserDto loginDto = new LoginUserDto(this.email, this.password, this.deviceName);
+
+    when(authenticationManager.authenticate(any(Authentication.class)))
+        .thenReturn(this.authenticationMock);
+    when(this.authenticationMock.isAuthenticated()).thenReturn(false);
+
+    assertThrows(
+        AuthenticationException.class,
+        () -> authenticationService.authenticate(loginDto, Optional.empty()));
   }
 }
