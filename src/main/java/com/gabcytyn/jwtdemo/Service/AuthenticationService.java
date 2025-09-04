@@ -65,9 +65,10 @@ public class AuthenticationService {
     String token = jwtService.generateToken(user.getEmail());
     // for future validation of a refresh token
     if (refreshToken.isEmpty()) {
-      RefreshTokenValidatorDto tokenValidatorDto =
-          new RefreshTokenValidatorDto(user.getEmail(), user.getDeviceName());
       String generatedRefreshToken = jwtService.generateRefreshToken();
+      RefreshTokenValidatorDto tokenValidatorDto =
+          new RefreshTokenValidatorDto(
+              generatedRefreshToken, user.getEmail(), user.getDeviceName());
       cachingService.saveRefreshToken(generatedRefreshToken, tokenValidatorDto);
     }
     return new LoginResponseDto(token, jwtService.getExpirationTime());
@@ -78,9 +79,9 @@ public class AuthenticationService {
     try {
       RefreshTokenValidatorDto validator = cachingService.getRefreshTokenValidator(refreshToken);
       if (validator == null) throw new RefreshTokenException("Refresh token not found.");
-      if (!deviceName.equals(validator.deviceName()))
+      if (!deviceName.equals(validator.getDeviceName()))
         throw new RefreshTokenException("Stored device name does not match request's device name");
-      String jwt = jwtService.generateToken(validator.email());
+      String jwt = jwtService.generateToken(validator.getEmail());
 
       cachingService.deleteRefreshToken(refreshToken);
       String generatedRefreshToken = jwtService.generateRefreshToken();

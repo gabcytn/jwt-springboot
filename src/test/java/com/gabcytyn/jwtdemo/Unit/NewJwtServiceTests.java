@@ -41,10 +41,11 @@ public class NewJwtServiceTests {
   @Test
   public void testRefreshTokenHappyFlow() {
     RefreshTokenValidatorDto validatorDto =
-        new RefreshTokenValidatorDto(faker.internet().emailAddress(), this.deviceName);
+        new RefreshTokenValidatorDto(
+            this.generatedRefreshToken, faker.internet().emailAddress(), this.deviceName);
 
     when(cachingService.getRefreshTokenValidator(this.oldRefreshToken)).thenReturn(validatorDto);
-    when(jwtService.generateToken(validatorDto.email())).thenReturn(this.generatedJwt);
+    when(jwtService.generateToken(validatorDto.getEmail())).thenReturn(this.generatedJwt);
     when(jwtService.generateRefreshToken()).thenReturn(this.generatedRefreshToken);
 
     LoginResponseDto response = authenticationService.newJwt(this.oldRefreshToken, this.deviceName);
@@ -68,7 +69,8 @@ public class NewJwtServiceTests {
   @Test
   public void testMismatchDeviceName() {
     RefreshTokenValidatorDto validatorDto =
-        new RefreshTokenValidatorDto(faker.internet().emailAddress(), this.deviceName);
+        new RefreshTokenValidatorDto(
+            this.generatedRefreshToken, faker.internet().emailAddress(), this.deviceName);
 
     when(cachingService.getRefreshTokenValidator(this.oldRefreshToken)).thenReturn(validatorDto);
 
