@@ -44,7 +44,7 @@ public class NewJwtServiceTests {
         new RefreshTokenValidatorDto(
             this.generatedRefreshToken, faker.internet().emailAddress(), this.deviceName);
 
-    when(cachingService.getRefreshTokenValidator(this.oldRefreshToken)).thenReturn(validatorDto);
+    when(cachingService.find(this.oldRefreshToken)).thenReturn(validatorDto);
     when(jwtService.generateToken(validatorDto.getEmail())).thenReturn(this.generatedJwt);
     when(jwtService.generateRefreshToken()).thenReturn(this.generatedRefreshToken);
 
@@ -52,14 +52,14 @@ public class NewJwtServiceTests {
 
     assertEquals(this.generatedJwt, response.getToken());
 
-    verify(cachingService, times(1)).deleteRefreshToken(this.oldRefreshToken);
+    verify(cachingService, times(1)).delete(this.oldRefreshToken);
     verify(jwtService, times(1)).generateRefreshToken();
-    verify(cachingService, times(1)).saveRefreshToken(this.generatedRefreshToken, validatorDto);
+    verify(cachingService, times(1)).save(this.generatedRefreshToken, validatorDto);
   }
 
   @Test
   public void testNullRefreshTokenValidator() {
-    when(cachingService.getRefreshTokenValidator(anyString())).thenReturn(null);
+    when(cachingService.find(anyString())).thenReturn(null);
 
     assertThrows(
         RefreshTokenException.class,
@@ -72,7 +72,7 @@ public class NewJwtServiceTests {
         new RefreshTokenValidatorDto(
             this.generatedRefreshToken, faker.internet().emailAddress(), this.deviceName);
 
-    when(cachingService.getRefreshTokenValidator(this.oldRefreshToken)).thenReturn(validatorDto);
+    when(cachingService.find(this.oldRefreshToken)).thenReturn(validatorDto);
 
     assertThrows(
         RefreshTokenException.class,

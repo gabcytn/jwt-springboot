@@ -64,7 +64,7 @@ public class LoginServiceTests {
     verify(jwtService, times(1)).generateToken(loginDto.getEmail());
     verify(jwtService, times(1)).getExpirationTime();
     verify(cachingService, times(1))
-        .saveRefreshToken(anyString(), any(RefreshTokenValidatorDto.class));
+        .save(anyString(), any(RefreshTokenValidatorDto.class));
   }
 
   @Test
@@ -87,7 +87,7 @@ public class LoginServiceTests {
     verify(jwtService, times(1)).getExpirationTime();
     verify(jwtService, never()).generateRefreshToken();
     verify(cachingService, never())
-        .saveRefreshToken(anyString(), any(RefreshTokenValidatorDto.class));
+        .save(anyString(), any(RefreshTokenValidatorDto.class));
   }
 
   @Test
