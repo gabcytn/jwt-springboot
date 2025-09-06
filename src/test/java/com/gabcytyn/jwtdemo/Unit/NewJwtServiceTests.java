@@ -54,7 +54,7 @@ public class NewJwtServiceTests {
 
     verify(cachingService, times(1)).delete(this.oldRefreshToken);
     verify(jwtService, times(1)).generateRefreshToken();
-    verify(cachingService, times(1)).save(this.generatedRefreshToken, validatorDto);
+    verify(cachingService, times(1)).save(validatorDto);
   }
 
   @Test

@@ -20,8 +20,8 @@ public class CachingService implements RefreshTokenService {
     this.userRedisTemplate = userRedisTemplate;
   }
 
-  public void save(String refreshToken, RefreshTokenValidatorDto validator) {
-    String key = this.getRefreshTokenKey(refreshToken);
+  public void save(RefreshTokenValidatorDto validator) {
+    String key = this.getRefreshTokenKey(validator.getKey());
     refreshTokenRedisTemplate.opsForValue().set(key, validator);
     refreshTokenRedisTemplate.expire(key, 7, TimeUnit.DAYS);
   }

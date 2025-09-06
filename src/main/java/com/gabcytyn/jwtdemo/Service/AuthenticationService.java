@@ -69,7 +69,7 @@ public class AuthenticationService {
       RefreshTokenValidatorDto tokenValidatorDto =
           new RefreshTokenValidatorDto(
               generatedRefreshToken, user.getEmail(), user.getDeviceName());
-      cachingService.save(generatedRefreshToken, tokenValidatorDto);
+      cachingService.save(tokenValidatorDto);
     }
     return new LoginResponseDto(token, jwtService.getExpirationTime());
   }
@@ -85,7 +85,8 @@ public class AuthenticationService {
 
       cachingService.delete(refreshToken);
       String generatedRefreshToken = jwtService.generateRefreshToken();
-      cachingService.save(generatedRefreshToken, validator);
+      validator.setKey(generatedRefreshToken);
+      cachingService.save(validator);
       return new LoginResponseDto(jwt, jwtService.getExpirationTime());
     } catch (Exception e) {
       LOG.error("Error generating new JWT");
