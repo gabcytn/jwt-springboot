@@ -1,15 +1,18 @@
 package com.gabcytyn.jwtdemo.Config;
 
 import com.gabcytyn.jwtdemo.DTO.RefreshTokenValidatorDto;
-import com.gabcytyn.jwtdemo.Entity.User;
+import java.time.Duration;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
@@ -36,13 +39,18 @@ public class RedisConfig {
   }
 
   @Bean
-  public RedisTemplate<String, User> userRedisTemplate() {
-    RedisTemplate<String, User> template = new RedisTemplate<>();
-    template.setConnectionFactory(lettuceConnectionFactory());
-    template.setKeySerializer(StringRedisSerializer.UTF_8);
-    template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-    template.afterPropertiesSet();
-    return template;
+  public RedisCacheManager cacheManager() {
+    RedisCacheConfiguration configuration =
+        RedisCacheConfiguration.defaultCacheConfig()
+            .entryTtl(Duration.ofMinutes(15))
+            .disableCachingNullValues()
+            .serializeValuesWith(
+                RedisSerializationContext.SerializationPair.fromSerializer(
+                    new GenericJackson2JsonRedisSerializer()));
+
+    return RedisCacheManager.builder(lettuceConnectionFactory())
+        .cacheDefaults(configuration)
+        .build();
   }
 
   @Bean
