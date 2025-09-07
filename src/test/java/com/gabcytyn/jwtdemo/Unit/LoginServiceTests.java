@@ -11,7 +11,7 @@ import com.gabcytyn.jwtdemo.DTO.RefreshTokenValidatorDto;
 import com.gabcytyn.jwtdemo.Exception.AuthenticationException;
 import com.gabcytyn.jwtdemo.Repository.UserRepository;
 import com.gabcytyn.jwtdemo.Service.AuthenticationService;
-import com.gabcytyn.jwtdemo.Service.CachingService;
+import com.gabcytyn.jwtdemo.Service.Interface.RefreshTokenService;
 import com.gabcytyn.jwtdemo.Service.JwtService;
 import com.github.javafaker.Faker;
 import java.util.Optional;
@@ -31,7 +31,7 @@ public class LoginServiceTests {
   @Mock private JwtService jwtService;
   @Mock private AuthenticationManager authenticationManager;
   @Mock private Authentication authenticationMock;
-  @Mock private CachingService cachingService;
+  @Mock private RefreshTokenService refreshTokenService;
 
   @InjectMocks private AuthenticationService authenticationService;
   private String email;
@@ -63,8 +63,7 @@ public class LoginServiceTests {
     verify(authenticationManager).authenticate(any(Authentication.class));
     verify(jwtService, times(1)).generateToken(loginDto.getEmail());
     verify(jwtService, times(1)).getExpirationTime();
-    verify(cachingService, times(1))
-        .saveRefreshToken(anyString(), any(RefreshTokenValidatorDto.class));
+    verify(refreshTokenService, times(1)).save(any(RefreshTokenValidatorDto.class));
   }
 
   @Test
@@ -86,8 +85,7 @@ public class LoginServiceTests {
     verify(jwtService, times(1)).generateToken(loginDto.getEmail());
     verify(jwtService, times(1)).getExpirationTime();
     verify(jwtService, never()).generateRefreshToken();
-    verify(cachingService, never())
-        .saveRefreshToken(anyString(), any(RefreshTokenValidatorDto.class));
+    verify(refreshTokenService, never()).save(any(RefreshTokenValidatorDto.class));
   }
 
   @Test

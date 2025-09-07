@@ -9,7 +9,7 @@ import com.gabcytyn.jwtdemo.DTO.LoginResponseDto;
 import com.gabcytyn.jwtdemo.DTO.RefreshTokenValidatorDto;
 import com.gabcytyn.jwtdemo.Exception.RefreshTokenException;
 import com.gabcytyn.jwtdemo.Service.AuthenticationService;
-import com.gabcytyn.jwtdemo.Service.CachingService;
+import com.gabcytyn.jwtdemo.Service.Interface.RefreshTokenService;
 import com.gabcytyn.jwtdemo.Service.JwtService;
 import com.github.javafaker.Faker;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class NewJwtServiceTests {
   private final Faker faker = new Faker();
-  @Mock private CachingService cachingService;
+  @Mock private RefreshTokenService refreshTokenService;
   @Mock private JwtService jwtService;
   @InjectMocks private AuthenticationService authenticationService;
   private String oldRefreshToken;
@@ -41,24 +41,25 @@ public class NewJwtServiceTests {
   @Test
   public void testRefreshTokenHappyFlow() {
     RefreshTokenValidatorDto validatorDto =
-        new RefreshTokenValidatorDto(faker.internet().emailAddress(), this.deviceName);
+        new RefreshTokenValidatorDto(
+            this.generatedRefreshToken, faker.internet().emailAddress(), this.deviceName);
 
-    when(cachingService.getRefreshTokenValidator(this.oldRefreshToken)).thenReturn(validatorDto);
-    when(jwtService.generateToken(validatorDto.email())).thenReturn(this.generatedJwt);
+    when(refreshTokenService.find(this.oldRefreshToken)).thenReturn(validatorDto);
+    when(jwtService.generateToken(validatorDto.getEmail())).thenReturn(this.generatedJwt);
     when(jwtService.generateRefreshToken()).thenReturn(this.generatedRefreshToken);
 
     LoginResponseDto response = authenticationService.newJwt(this.oldRefreshToken, this.deviceName);
 
     assertEquals(this.generatedJwt, response.getToken());
 
-    verify(cachingService, times(1)).deleteRefreshToken(this.oldRefreshToken);
+    verify(refreshTokenService, times(1)).delete(this.oldRefreshToken);
     verify(jwtService, times(1)).generateRefreshToken();
-    verify(cachingService, times(1)).saveRefreshToken(this.generatedRefreshToken, validatorDto);
+    verify(refreshTokenService, times(1)).save(validatorDto);
   }
 
   @Test
   public void testNullRefreshTokenValidator() {
-    when(cachingService.getRefreshTokenValidator(anyString())).thenReturn(null);
+    when(refreshTokenService.find(anyString())).thenReturn(null);
 
     assertThrows(
         RefreshTokenException.class,
@@ -68,9 +69,10 @@ public class NewJwtServiceTests {
   @Test
   public void testMismatchDeviceName() {
     RefreshTokenValidatorDto validatorDto =
-        new RefreshTokenValidatorDto(faker.internet().emailAddress(), this.deviceName);
+        new RefreshTokenValidatorDto(
+            this.generatedRefreshToken, faker.internet().emailAddress(), this.deviceName);
 
-    when(cachingService.getRefreshTokenValidator(this.oldRefreshToken)).thenReturn(validatorDto);
+    when(refreshTokenService.find(this.oldRefreshToken)).thenReturn(validatorDto);
 
     assertThrows(
         RefreshTokenException.class,
