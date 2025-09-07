@@ -1,8 +1,10 @@
 package com.gabcytyn.jwtdemo.DTO;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.TimeToLive;
 
+@RedisHash("refreshToken")
 public class RefreshTokenValidatorDto {
   @Id private String key;
   private String email;
