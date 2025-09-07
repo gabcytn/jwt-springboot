@@ -6,6 +6,7 @@ import com.gabcytyn.jwtdemo.Exception.AuthenticationException;
 import com.gabcytyn.jwtdemo.Exception.DuplicateEmailException;
 import com.gabcytyn.jwtdemo.Exception.RefreshTokenException;
 import com.gabcytyn.jwtdemo.Repository.UserRepository;
+import com.gabcytyn.jwtdemo.Service.Interface.RefreshTokenService;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,19 +24,19 @@ public class AuthenticationService {
   private final PasswordEncoder passwordEncoder;
   private final AuthenticationManager authenticationManager;
   private final JwtService jwtService;
-  private final CachingService cachingService;
+  private final RefreshTokenService refreshTokenService;
 
   public AuthenticationService(
       UserRepository userRepository,
       PasswordEncoder passwordEncoder,
       AuthenticationManager authenticationManager,
       JwtService jwtService,
-      CachingService cachingService) {
+      RefreshTokenService refreshTokenService) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.authenticationManager = authenticationManager;
     this.jwtService = jwtService;
-    this.cachingService = cachingService;
+    this.refreshTokenService = refreshTokenService;
   }
 
   public void signup(RegisterUserDto user) {
@@ -69,7 +70,7 @@ public class AuthenticationService {
       RefreshTokenValidatorDto tokenValidatorDto =
           new RefreshTokenValidatorDto(
               generatedRefreshToken, user.getEmail(), user.getDeviceName());
-      cachingService.save(tokenValidatorDto);
+      refreshTokenService.save(tokenValidatorDto);
     }
     return new LoginResponseDto(token, jwtService.getExpirationTime());
   }
@@ -77,16 +78,16 @@ public class AuthenticationService {
   public LoginResponseDto newJwt(String refreshToken, String deviceName)
       throws RefreshTokenException {
     try {
-      RefreshTokenValidatorDto validator = cachingService.find(refreshToken);
+      RefreshTokenValidatorDto validator = refreshTokenService.find(refreshToken);
       if (validator == null) throw new RefreshTokenException("Refresh token not found.");
       if (!deviceName.equals(validator.getDeviceName()))
         throw new RefreshTokenException("Stored device name does not match request's device name");
       String jwt = jwtService.generateToken(validator.getEmail());
 
-      cachingService.delete(refreshToken);
+      refreshTokenService.delete(refreshToken);
       String generatedRefreshToken = jwtService.generateRefreshToken();
       validator.setKey(generatedRefreshToken);
-      cachingService.save(validator);
+      refreshTokenService.save(validator);
       return new LoginResponseDto(jwt, jwtService.getExpirationTime());
     } catch (Exception e) {
       LOG.error("Error generating new JWT");

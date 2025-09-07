@@ -9,7 +9,7 @@ import com.gabcytyn.jwtdemo.DTO.LoginResponseDto;
 import com.gabcytyn.jwtdemo.DTO.RefreshTokenValidatorDto;
 import com.gabcytyn.jwtdemo.Exception.RefreshTokenException;
 import com.gabcytyn.jwtdemo.Service.AuthenticationService;
-import com.gabcytyn.jwtdemo.Service.CachingService;
+import com.gabcytyn.jwtdemo.Service.Interface.RefreshTokenService;
 import com.gabcytyn.jwtdemo.Service.JwtService;
 import com.github.javafaker.Faker;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class NewJwtServiceTests {
   private final Faker faker = new Faker();
-  @Mock private CachingService cachingService;
+  @Mock private RefreshTokenService refreshTokenService;
   @Mock private JwtService jwtService;
   @InjectMocks private AuthenticationService authenticationService;
   private String oldRefreshToken;
@@ -44,7 +44,7 @@ public class NewJwtServiceTests {
         new RefreshTokenValidatorDto(
             this.generatedRefreshToken, faker.internet().emailAddress(), this.deviceName);
 
-    when(cachingService.find(this.oldRefreshToken)).thenReturn(validatorDto);
+    when(refreshTokenService.find(this.oldRefreshToken)).thenReturn(validatorDto);
     when(jwtService.generateToken(validatorDto.getEmail())).thenReturn(this.generatedJwt);
     when(jwtService.generateRefreshToken()).thenReturn(this.generatedRefreshToken);
 
@@ -52,14 +52,14 @@ public class NewJwtServiceTests {
 
     assertEquals(this.generatedJwt, response.getToken());
 
-    verify(cachingService, times(1)).delete(this.oldRefreshToken);
+    verify(refreshTokenService, times(1)).delete(this.oldRefreshToken);
     verify(jwtService, times(1)).generateRefreshToken();
-    verify(cachingService, times(1)).save(validatorDto);
+    verify(refreshTokenService, times(1)).save(validatorDto);
   }
 
   @Test
   public void testNullRefreshTokenValidator() {
-    when(cachingService.find(anyString())).thenReturn(null);
+    when(refreshTokenService.find(anyString())).thenReturn(null);
 
     assertThrows(
         RefreshTokenException.class,
@@ -72,7 +72,7 @@ public class NewJwtServiceTests {
         new RefreshTokenValidatorDto(
             this.generatedRefreshToken, faker.internet().emailAddress(), this.deviceName);
 
-    when(cachingService.find(this.oldRefreshToken)).thenReturn(validatorDto);
+    when(refreshTokenService.find(this.oldRefreshToken)).thenReturn(validatorDto);
 
     assertThrows(
         RefreshTokenException.class,
